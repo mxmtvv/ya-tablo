@@ -2,6 +2,7 @@
 
 const $ = (id) => document.getElementById(id);
 const uid = () => crypto.randomUUID();
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let items = [];        // корень: сайты и папки (вложенность — один уровень)
 let dim = 30;          // затемнение обоев, %
@@ -10,12 +11,19 @@ let dragging = null;   // id перетаскиваемой плитки
 let busy = false;      // идёт анимация перехода
 let editing = false;   // режим редактирования
 let wallAvg = null;    // средний цвет обоев [r,g,b]
+let needsSave = false; // первый запуск / миграция: нужно записать данные
 let wallUrl = null;
 let editCtx = null;
 let engines = [];
 let engine = null;     // выбранный поисковик (только для этой вкладки)
 
 /* ---------- утилиты ---------- */
+function bindPick(inputId) {
+  const inp = $(inputId), name = $(inputId + "Name");
+  const upd = () => { name.textContent = (inp.files[0] && inp.files[0].name) || "Файл не выбран"; };
+  inp.addEventListener("change", upd);
+  return upd;
+}
 function hostOf(u) {
   try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; }
 }
@@ -55,6 +63,9 @@ const currentArr = () => {
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const save = () => browser.storage.local.set({ items, dim });
 
+const updIconName = bindPick("tIcon");
+const updWallName = bindPick("wallFile");
+
 /* ---------- хранилище ---------- */
 async function load() {
   const s = await browser.storage.local.get(["items", "tiles", "dim"]);
@@ -66,6 +77,7 @@ async function load() {
   if (Array.isArray(s.tiles)) {
     items = s.tiles.map((t) => ({ id: uid(), type: "site", title: t.title, url: t.url, icon: t.icon || null }));
     await browser.storage.local.remove("tiles");
+    needsSave = true;
     return;
   }
 
@@ -76,12 +88,46 @@ async function load() {
   } catch {
     try { top = await browser.topSites.get({ limit: 8, onePerDomain: true }); } catch {}
   }
+  needsSave = true;
   items = top
     .filter((t) => /^https?:/.test(t.url))
     .map((t) => ({ id: uid(), type: "site", title: t.title || hostOf(t.url), url: t.url, icon: t.favicon || null }));
 }
 
 /* ---------- иконки ---------- */
+function eachSite(arr, fn) {
+  for (const it of arr) {
+    if (it.type === "folder") eachSite(it.items, fn);
+    else fn(it);
+  }
+}
+
+// Иконки раньше брались только при первом запуске. Теперь плиткам без иконки
+// на каждом старте пробуем подобрать favicon среди «часто посещаемых» сайтов.
+async function syncIcons() {
+  const missing = [];
+  eachSite(items, (it) => { if (!it.icon) missing.push(it); });
+  if (!missing.length) return;
+
+  let top = [];
+  try {
+    top = await browser.topSites.get({ limit: 100, onePerDomain: true, includeFavicon: true });
+  } catch { return; }
+
+  const byHost = new Map();
+  for (const t of top) if (t.favicon && /^https?:/.test(t.url)) byHost.set(hostOf(t.url), t.favicon);
+
+  let changed = false;
+  for (const it of missing) {
+    const f = byHost.get(hostOf(it.url));
+    if (f) { it.icon = f; it.custom = false; changed = true; }
+  }
+  if (changed) {
+    await save();
+    if (!busy && !dragging) render();
+  }
+}
+
 function letterFallback(el, item) {
   el.classList.remove("has-img", "custom");
   el.replaceChildren(document.createTextNode((item.title[0] || "?").toUpperCase()));
@@ -385,6 +431,7 @@ function openItemDialog(ctx) {
   $("tUrl").value = it && it.url ? it.url : "";
   $("tUrl").setCustomValidity("");
   $("tIcon").value = "";
+  updIconName();
   $("tIconReset").checked = false;
   $("itemDlg").showModal();
 }
@@ -434,6 +481,7 @@ $("itemForm").addEventListener("submit", async (e) => {
   $("itemDlg").close();
   await save();
   render();
+  if (!isFolder) syncIcons();
 });
 
 /* ---------- меню шестерёнки ---------- */
@@ -453,7 +501,7 @@ function toggleMenu() {
 }
 $("gear").addEventListener("click", (e) => { e.stopPropagation(); closeEngMenu(); toggleMenu(); });
 $("mEdit").addEventListener("click", () => { closeMenu(); setEditing(!editing); });
-const openWallDialog = () => { $("wallFile").value = ""; $("setDlg").showModal(); };
+const openWallDialog = () => { $("wallFile").value = ""; updWallName(); $("setDlg").showModal(); };
 $("mWall").addEventListener("click", () => { closeMenu(); openWallDialog(); });
 
 /* ---------- режим редактирования ---------- */
@@ -523,6 +571,11 @@ function applyRing() {
 async function applyWallpaper(blob) {
   if (wallUrl) URL.revokeObjectURL(wallUrl);
   wallUrl = blob ? URL.createObjectURL(blob) : null;
+  if (wallUrl) {
+    const im = new Image();
+    im.src = wallUrl;
+    await Promise.race([im.decode().catch(() => {}), delay(800)]);
+  }
   $("wall").style.backgroundImage = wallUrl ? `url("${wallUrl}")` : "none";
   document.body.classList.toggle("has-wall", !!blob);
   try { wallAvg = blob ? await averageColor(blob) : null; } catch { wallAvg = null; }
@@ -614,11 +667,31 @@ $("engBtn").addEventListener("click", (e) => {
   if (open) $("engMenu").querySelector("[aria-selected=true]")?.focus();
 });
 
+const ENG_KEY = "tablo.engines";
+
+function readEngCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(ENG_KEY));
+    if (c && Array.isArray(c.engines) && c.engines.length) return c;
+  } catch {}
+  return null;
+}
+
 async function initEngines() {
-  try { engines = await browser.search.get(); } catch { engines = []; }
-  const def = engines.find((e) => e.isDefault) || engines[0];
-  engine = def ? def.name : null;
-  renderEngines();
+  let fresh = [];
+  try { fresh = await browser.search.get(); } catch {}
+  if (!fresh.length) return;
+
+  const slim = fresh.map((e) => ({ name: e.name, isDefault: !!e.isDefault, favIconUrl: e.favIconUrl || null }));
+  const changed = JSON.stringify(slim) !== JSON.stringify(engines);
+  try { localStorage.setItem(ENG_KEY, JSON.stringify({ engines: slim })); } catch {}
+
+  engines = slim;
+  if (!engine || !engines.some((e) => e.name === engine)) {
+    const def = engines.find((e) => e.isDefault) || engines[0];
+    engine = def ? def.name : null;
+  }
+  if (changed) renderEngines();
 }
 
 $("search").addEventListener("submit", (e) => {
@@ -648,11 +721,31 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ---------- старт ---------- */
-(async () => {
-  await load();
-  applyDim();
-  render();
-  save();
-  initEngines();
-  try { applyWallpaper(await kv("readonly", (s) => s.get("wall"))); } catch {}
-})();
+// Всё нужное грузим параллельно и показываем страницу одним кадром:
+// без чёрного экрана, без «доезжающих» плиток, обоев и иконки поисковика.
+async function boot() {
+  try {
+    const cached = readEngCache();
+    if (cached) {
+      engines = cached.engines;
+      const def = engines.find((e) => e.isDefault) || engines[0];
+      engine = def ? def.name : null;
+    }
+    const engP = initEngines();
+    const wallP = kv("readonly", (s) => s.get("wall")).then(applyWallpaper).catch(() => {});
+
+    await Promise.all([load(), wallP, cached ? null : Promise.race([engP, delay(500)])]);
+
+    applyDim();
+    render();
+    renderEngines();
+    if (needsSave) save();
+
+    const imgs = [...document.querySelectorAll("#tiles img, #engBtn img")];
+    await Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => {}))), delay(300)]);
+  } finally {
+    document.documentElement.classList.remove("boot");
+  }
+  syncIcons();
+}
+boot();

@@ -17,11 +17,14 @@
 }
 body.has-wall{--tile-fg:#fff;--card:rgba(255,255,255,.16);--card-line:rgba(255,255,255,.28)}
 
+html{background:var(--bg-a)}
 html,body{height:100%;margin:0}
 body{
   font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;color:var(--fg);
-  background:linear-gradient(160deg,var(--bg-a),var(--bg-b)) fixed;
+  transition:opacity .2s;
 }
+html.boot body{opacity:0}
+#base{position:fixed;inset:0;z-index:-3;background:linear-gradient(160deg,var(--bg-a),var(--bg-b))}
 #wall{position:fixed;inset:0;background:center/cover no-repeat;z-index:-2}
 #dimmer{position:fixed;inset:0;z-index:-1;pointer-events:none}
 main{max-width:1120px;margin:0 auto;padding:18vh 24px 64px}
@@ -150,12 +153,14 @@ body:not(.has-wall) #crumb h2{text-shadow:none}
 
 /* нижняя панель режима редактирования */
 #editBar{margin-top:36px;color:var(--tile-fg);animation:fadein .25s ease-out}
-.editbtns{display:flex;justify-content:center;flex-wrap:wrap;gap:40px}
+.editbtns{display:flex;justify-content:center;flex-wrap:wrap;gap:16px}
 .ebtn{
-  display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;
+  box-sizing:border-box;width:152px;height:92px;padding:10px 6px;
   border:0;border-radius:16px;background:none;color:inherit;font:inherit;font-size:14px;cursor:pointer;
   text-shadow:0 1px 3px rgba(0,0,0,.25);
 }
+.ebtn span{white-space:nowrap}
 body:not(.has-wall) .ebtn{text-shadow:none}
 .ebtn:hover{background:rgba(127,127,127,.16)}
 .ebtn svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
@@ -186,13 +191,27 @@ dialog{
 dialog::backdrop{background:rgba(0,0,0,.4)}
 dialog h2{margin:0 0 4px;font-size:18px}
 dialog label{display:block;margin-top:14px;font-size:13px;color:var(--muted)}
-dialog input:not([type=checkbox]):not([type=range]){
+dialog input:not([type=checkbox]):not([type=range]):not([type=file]){
   display:block;width:100%;margin-top:4px;padding:0 12px;min-height:40px;
   border:1px solid var(--line);border-radius:12px;background:transparent;
   color:var(--fg);font:inherit;
 }
-dialog input[type=file]{padding-top:8px}
 dialog input[type=range]{display:block;width:100%;margin-top:8px}
+.field{display:block;margin-top:14px;font-size:13px;color:var(--muted)}
+.filepick{
+  position:relative;display:flex;align-items:center;gap:12px;
+  min-height:44px;margin-top:6px;padding:6px 8px;
+  border:1px solid var(--line);border-radius:12px;
+  color:var(--fg);font-size:14px;cursor:pointer;
+}
+.filepick:hover{background:rgba(127,127,127,.1)}
+.filepick:focus-within{outline:2px solid var(--ring);outline-offset:2px}
+.pickbtn{
+  display:inline-flex;align-items:center;flex:none;height:30px;padding:0 14px;
+  border-radius:9px;background:rgba(127,127,127,.18);white-space:nowrap;
+}
+.pickname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;margin:0;padding:0;border:0;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
 label.check{display:flex;gap:8px;align-items:center}
 .row{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
 .row button{
@@ -203,4 +222,4 @@ label.check{display:flex;gap:8px;align-items:center}
 
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
 #q:focus-visible{outline:0}
-@media (prefers-reduced-motion:reduce){.card{transition:none}#editBar{animation:none}}
+@media (prefers-reduced-motion:reduce){.card{transition:none}#editBar{animation:none}body{transition:none}}
