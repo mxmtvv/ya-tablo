@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "ya-tablo@mxmtvv.github.io": {
+      "updates": [
+        {
+          "version": "0.3.0",
+          "update_link": "https://github.com/mxmtvv/ya-tablo/releases/download/v0.3.0/ya-tablo-0.3.0.xpi"
+        }
+      ]
+    }
+  }
+}

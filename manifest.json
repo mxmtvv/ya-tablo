@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "ЯТабло — стартовая страница",
+  "version": "0.3.0",
+  "description": "Домашняя страница и новая вкладка в духе Яндекс Браузера: поиск, плитки, папки, обои",
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "chrome_settings_overrides": { "homepage": "newtab.html" },
+  "permissions": ["storage", "topSites", "search"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ya-tablo@mxmtvv.github.io",
+      "update_url": "https://mxmtvv.github.io/ya-tablo/updates.json",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Новая вкладка</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <div id="wall" aria-hidden="true"></div>
+  <div id="dimmer" aria-hidden="true"></div>
+
+  <main>
+    <form id="search" role="search">
+      <button id="engBtn" type="button" aria-haspopup="listbox" aria-expanded="false" hidden></button>
+      <input id="q" type="search" placeholder="Поиск или адрес сайта" autocomplete="off" autofocus aria-label="Поиск">
+      <button id="go" type="submit">Найти</button>
+      <ul id="engMenu" role="listbox" aria-label="Поисковая система" hidden></ul>
+    </form>
+
+    <div id="crumb" hidden>
+      <button id="crumbBack" type="button" title="Назад. Перетащите сюда плитку, чтобы вынести её из папки">‹ Назад</button>
+      <h2 id="crumbTitle"></h2>
+      <button id="crumbRename" type="button" class="round" hidden aria-label="Переименовать папку" title="Переименовать">✎</button>
+    </div>
+
+    <section id="tiles" class="grid" aria-label="Плитки сайтов"></section>
+
+    <div id="editBar" hidden>
+      <div class="editbtns">
+        <button type="button" class="ebtn" id="eAddSite">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v10M7 12h10"/></svg>
+          <span>Добавить сайт</span>
+        </button>
+        <button type="button" class="ebtn" id="eAddFolder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <span>Добавить папку</span>
+        </button>
+        <button type="button" class="ebtn" id="eWall">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
+          <span>Обои</span>
+        </button>
+      </div>
+      <div class="editdone"><button type="button" id="eDone">Готово</button></div>
+    </div>
+  </main>
+
+  <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" id="mEdit">Редактировать</button>
+    <button type="button" role="menuitem" id="mWall">Обои и затемнение…</button>
+  </div>
+  <button id="gear" type="button" aria-label="Настройки" aria-haspopup="menu" aria-expanded="false" title="Настройки">⚙</button>
+
+  <dialog id="itemDlg">
+    <form id="itemForm">
+      <h2 id="dlgTitle"></h2>
+      <label>Название
+        <input id="tTitle" required maxlength="40">
+      </label>
+      <label id="rowUrl">Адрес
+        <input id="tUrl" placeholder="example.com">
+      </label>
+      <label id="rowIcon">Своя иконка
+        <input id="tIcon" type="file" accept="image/*">
+      </label>
+      <label id="rowReset" class="check">
+        <input id="tIconReset" type="checkbox"> Убрать свою иконку
+      </label>
+      <div class="row">
+        <button type="button" id="itemCancel">Отмена</button>
+        <button type="submit" class="primary">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="setDlg">
+    <h2>Настройки</h2>
+    <label>Обои с компьютера
+      <input id="wallFile" type="file" accept="image/*">
+    </label>
+    <label>Затемнение обоев: <output id="dimOut"></output>%
+      <input id="dim" type="range" min="0" max="70" step="5">
+    </label>
+    <div class="row">
+      <button type="button" id="wallClear">Убрать обои</button>
+      <button type="button" id="setClose" class="primary">Готово</button>
+    </div>
+  </dialog>
+
+  <script src="newtab.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+:root{
+  color-scheme:light dark;
+  --bg-a:#f4f5f9;--bg-b:#e3e7f1;
+  --fg:#1c1e24;--muted:#6a7080;
+  --surface:#fff;--line:rgba(20,24,40,.14);
+  --yellow:#ffdb4d;
+  --ring-ui:#6f7587;--ring:var(--ring-ui);
+  --shadow:0 2px 14px rgba(20,30,60,.10);
+  --tile-fg:var(--fg);--card:rgba(255,255,255,.85);--card-line:var(--line);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg-a:#1a1c22;--bg-b:#262a35;--fg:#eceef4;--muted:#9aa0b2;
+    --surface:#2d313d;--line:rgba(255,255,255,.14);--shadow:0 2px 14px rgba(0,0,0,.35);
+    --card:rgba(255,255,255,.08);--ring-ui:#b4bacb}
+}
+body.has-wall{--tile-fg:#fff;--card:rgba(255,255,255,.16);--card-line:rgba(255,255,255,.28)}
+
+html,body{height:100%;margin:0}
+body{
+  font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;color:var(--fg);
+  background:linear-gradient(160deg,var(--bg-a),var(--bg-b)) fixed;
+}
+#wall{position:fixed;inset:0;background:center/cover no-repeat;z-index:-2}
+#dimmer{position:fixed;inset:0;z-index:-1;pointer-events:none}
+main{max-width:1120px;margin:0 auto;padding:18vh 24px 64px}
+
+/* поиск */
+#search{
+  position:relative;display:flex;align-items:center;max-width:680px;margin:0 auto;padding:5px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:30px;box-shadow:var(--shadow);
+}
+#search:focus-within{border-color:var(--ring-ui);box-shadow:var(--shadow),0 0 0 2px var(--ring)}
+#q{
+  flex:1;min-width:0;height:50px;padding:0 22px;border:0;outline:0;
+  background:transparent;color:inherit;font:inherit;font-size:18px;
+}
+#go{
+  height:50px;
+  border:0;border-radius:25px;padding:0 28px;cursor:pointer;
+  background:var(--yellow);color:#1c1e24;font:inherit;font-weight:600;
+}
+#go:hover{filter:brightness(.96)}
+
+/* сетка плиток */
+.grid{
+  display:grid;justify-content:center;gap:20px;
+  grid-template-columns:repeat(auto-fill,184px);
+}
+#tiles{margin-top:56px}
+.tile{position:relative}
+.card{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  width:100%;height:144px;padding:18px 12px 12px;
+  border:1px solid var(--card-line);border-radius:26px;
+  background:var(--card);color:var(--tile-fg);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  font:inherit;text-decoration:none;cursor:pointer;
+  transition:transform .12s;
+}
+.tile:hover .card{transform:translateY(-2px)}
+.name{
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+body:not(.has-wall) .name{text-shadow:none}
+
+.ico{
+  width:76px;height:76px;border-radius:20px;overflow:hidden;
+  display:grid;place-items:center;flex:none;
+  font-size:34px;font-weight:600;color:#fff;
+}
+.ico.has-img{background:#fff}
+.ico img{width:48px;height:48px;object-fit:contain}
+.ico.custom img{width:100%;height:100%;object-fit:cover}
+.ico.folder{
+  grid-template-columns:1fr 1fr;gap:5px;padding:8px;place-items:center;
+  background:rgba(127,127,127,.28);
+}
+.ico.mini{width:28px;height:28px;border-radius:8px;font-size:14px}
+.ico.mini img{width:18px;height:18px}
+.ico.mini.custom img{width:100%;height:100%}
+
+
+/* панель на плитке в режиме редактирования */
+.tools{
+  position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:2px;padding:2px;
+  border-radius:11px;background:rgba(20,22,28,.55);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.tools .tool{
+  width:26px;height:26px;padding:0;border:0;border-radius:9px;
+  background:transparent;color:#fff;font-size:14px;line-height:1;cursor:pointer;
+}
+.tools .tool:hover{background:rgba(255,255,255,.22)}
+body.editing .tile .card{cursor:grab}
+body.editing .tile:hover .card{transform:none}
+.tile.dragging{opacity:.4}
+.tile.over .card{outline:2px solid var(--ring)}
+
+/* хлебная крошка внутри папки */
+#crumb{
+  display:flex;justify-content:center;align-items:center;gap:12px;
+  margin-top:48px;color:var(--tile-fg);
+}
+main.in-folder #tiles{margin-top:24px}
+#crumb h2{margin:0;font-size:20px;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,.25)}
+body:not(.has-wall) #crumb h2{text-shadow:none}
+#crumbBack{
+  height:38px;padding:0 18px;border:1px solid var(--card-line);border-radius:19px;
+  background:var(--card);color:var(--tile-fg);font:inherit;cursor:pointer;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+#crumbBack.over{outline:2px solid var(--ring)}
+#crumb .round{border-color:var(--card-line);background:var(--card);color:var(--tile-fg)}
+.round{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:transparent;color:var(--fg);font-size:16px;cursor:pointer;
+}
+.hint{grid-column:1/-1;text-align:center;color:var(--tile-fg);opacity:.85;padding:24px}
+
+/* выбор поисковика */
+#engBtn{
+  display:flex;align-items:center;gap:6px;height:40px;margin-left:4px;padding:0 10px 0 12px;
+  border:0;border-radius:24px;background:transparent;color:var(--muted);font:inherit;cursor:pointer;
+}
+#engBtn:hover{background:rgba(127,127,127,.14)}
+.engico{
+  width:22px;height:22px;border-radius:6px;overflow:hidden;flex:none;
+  display:grid;place-items:center;background:rgba(127,127,127,.2);
+  font-size:12px;font-weight:700;color:var(--fg);
+}
+.engico img{width:18px;height:18px;object-fit:contain}
+#engMenu,#menu{
+  position:absolute;z-index:20;margin:0;padding:6px;list-style:none;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+}
+#engMenu{top:calc(100% + 8px);left:0;min-width:240px}
+#engMenu li{margin:0}
+#engMenu button,#menu button{
+  display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;border-radius:10px;
+  background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer;
+}
+#engMenu button:hover,#menu button:hover,#engMenu button:focus-visible,#menu button:focus-visible{background:rgba(127,127,127,.16)}
+#engMenu button[aria-selected=true]{font-weight:600}
+#menu{position:fixed;right:18px;bottom:68px;min-width:240px}
+
+/* нижняя панель режима редактирования */
+#editBar{margin-top:36px;color:var(--tile-fg);animation:fadein .25s ease-out}
+.editbtns{display:flex;justify-content:center;flex-wrap:wrap;gap:40px}
+.ebtn{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 12px;
+  border:0;border-radius:16px;background:none;color:inherit;font:inherit;font-size:14px;cursor:pointer;
+  text-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+body:not(.has-wall) .ebtn{text-shadow:none}
+.ebtn:hover{background:rgba(127,127,127,.16)}
+.ebtn svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.editdone{display:flex;justify-content:center;margin-top:28px}
+#eDone{
+  height:38px;padding:0 28px;border:0;border-radius:19px;cursor:pointer;
+  background:rgba(20,22,28,.6);color:#fff;font:inherit;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+#eDone:hover{background:rgba(20,22,28,.78)}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* шестерёнка */
+#gear{
+  position:fixed;right:18px;bottom:18px;width:42px;height:42px;
+  border:0;border-radius:50%;background:transparent;color:var(--muted);
+  font-size:22px;cursor:pointer;opacity:.7;
+}
+#gear:hover,#gear:focus-visible{opacity:1}
+body.has-wall #gear{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+
+/* диалоги */
+dialog{
+  --ring:var(--ring-ui);
+  width:min(400px,90vw);padding:24px;border:1px solid var(--line);
+  border-radius:22px;background:var(--surface);color:var(--fg);
+}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog h2{margin:0 0 4px;font-size:18px}
+dialog label{display:block;margin-top:14px;font-size:13px;color:var(--muted)}
+dialog input:not([type=checkbox]):not([type=range]){
+  display:block;width:100%;margin-top:4px;padding:0 12px;min-height:40px;
+  border:1px solid var(--line);border-radius:12px;background:transparent;
+  color:var(--fg);font:inherit;
+}
+dialog input[type=file]{padding-top:8px}
+dialog input[type=range]{display:block;width:100%;margin-top:8px}
+label.check{display:flex;gap:8px;align-items:center}
+.row{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.row button{
+  height:38px;padding:0 18px;border-radius:19px;border:1px solid var(--line);
+  background:transparent;color:inherit;font:inherit;cursor:pointer;
+}
+.row .primary{background:var(--yellow);color:#1c1e24;border-color:transparent;font-weight:600}
+
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+#q:focus-visible{outline:0}
+@media (prefers-reduced-motion:reduce){.card{transition:none}#editBar{animation:none}}
